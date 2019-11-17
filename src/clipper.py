@@ -30,13 +30,14 @@ def extract_sound(clip, name):
     clip.audio.write_audiofile(name + ".wav")
 
     
-def create_clip(original_video, cut_from, cut_to, clip_name, ext):
-    with VideoFileClip(original_video) as video:
+def create_clip(clip_name, cut_from, cut_to, output_name, ext):
+    print(cut_from, cut_to)
+    with VideoFileClip(clip_name) as video:
         new = video.subclip(cut_from, cut_to)
-        new.write_videofile(clip_name + "." + ext, audio_codec='aac')
+        new.write_videofile(output_name + "." + ext, audio_codec='aac')
     
     
-def generate_plot(sound_name, duration):
+def get_sound_score(sound_name, duration):
     start_time = 0
     end_time = 10
 
@@ -66,7 +67,8 @@ def generate_plot(sound_name, duration):
 @click.option('--grouping', '-o')
 @click.option('--start', '-s')
 @click.option('--end', '-e')
-def main(stream, grouping=None, start=None, end=None):
+@click.option('--threshold', '-t')
+def main(stream, grouping=None, start=None, end=None, threshold=None):
     stream_ext = 'mp4'
     sound_ext = 'wav'
     chat_ext = 'json'
@@ -90,8 +92,10 @@ def main(stream, grouping=None, start=None, end=None):
 
     clip = mp.VideoFileClip('../res/{}.{}'.format(stream, stream_ext))
     extract_sound(clip, '../res/{}'.format(stream))
-    sound = np.array(generate_plot('../res/{}.{}'.format(stream, sound_ext), clip.duration))
+    sound = np.array(get_sound_score('../res/{}.{}'.format(stream, sound_ext), clip.duration))
     sound_grad = [grad if grad > 0 else 0 for grad in np.gradient(sound)]
+
+    print(clip.duration)
 
     # read file
     with open('../res/{}.{}'.format(stream, chat_ext), 'r') as file:
@@ -128,23 +132,28 @@ def main(stream, grouping=None, start=None, end=None):
     in_highlight = False
     highlight_start = 0
     highlight_end = 0
-    clip = 0
-    threshold = 0.1
+    clip_index = 0
+    threshold_highlight = threshold if threshold != None else 0.1
+    timestamps = []
     for i in range(len(final)):
         sec = i * 10
-        if final[i] >= threshold:
+        if final[i] >= threshold_highlight:
             if not in_highlight:
-                print('From: {}:{}'.format(math.floor(sec/60), sec%60))
+                #print('From: {}:{}'.format(math.floor(sec/60), sec%60))
                 highlight_start = sec
             in_highlight = True
         else:
             if in_highlight:
-                print('To: {}:{}'.format(math.floor(sec/60), sec%60))
+                #print('To: {}:{}'.format(math.floor(sec/60), sec%60))
                 highlight_end = sec
-                clip = clip + 1
-                create_clip('../res/{}.{}'.format(stream, stream_ext), highlight_start, highlight_end + grouping, "../res/output/{}-{}".format(stream, clip), 'mp4')
+                clip_index = clip_index + 1
+                timestamps.append([highlight_start + 5, min(highlight_end + 25, clip.duration)])
             in_highlight = False
+    if in_highlight:
+        timestamps.append([highlight_start + 5, clip.duration])
 
+    for i in range(len(timestamps)):
+        create_clip('../res/{}.{}'.format(stream, stream_ext), timestamps[i][0], timestamps[i][1], "../res/output/{}-{}".format(stream, i+1), 'mp4')
 
 if __name__ == "__main__":
     main()
