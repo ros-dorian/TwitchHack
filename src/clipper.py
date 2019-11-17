@@ -1,5 +1,6 @@
 #import matplotlib
 #import matplotlib.pyplot as plt
+import click
 import json
 import numpy as np
 import math
@@ -11,7 +12,6 @@ from moviepy.video.io.VideoFileClip import VideoFileClip
 def comments_score(comments, keywords, grouping, start_time, end_time):
     scores = {}
 
-    grouping = int(grouping) if grouping else 10
     for comment_info in comments:
         time_since_start = int(math.ceil(comment_info['content_offset_seconds'] / grouping)) * grouping
 
@@ -26,9 +26,8 @@ def comments_score(comments, keywords, grouping, start_time, end_time):
 
     return scores
 
-def extract_sound(video_name, ext):
-    clip = mp.VideoFileClip(video_name + "." + ext)
-    clip.audio.write_audiofile(video_name + ".wav")
+def extract_sound(clip, name):
+    clip.audio.write_audiofile(name + ".wav")
 
     
 def create_clip(original_video, cut_from, cut_to, clip_name, ext):
@@ -37,7 +36,7 @@ def create_clip(original_video, cut_from, cut_to, clip_name, ext):
         new.write_videofile(clip_name + "." + ext, audio_codec='aac')
     
     
-def generate_plot(sound_name):
+def generate_plot(sound_name, duration):
     start_time = 0
     end_time = 10
 
@@ -46,7 +45,7 @@ def generate_plot(sound_name):
     original_array = []
     final_array = []
 
-    while end_time <= 45 * 60:
+    while end_time <= duration:
         extract = song[start_time * 1000:end_time * 1000]
         val = extract.rms + 96
 
@@ -62,15 +61,15 @@ def generate_plot(sound_name):
     return final_array
 
 
-if __name__ == "__main__":
-    tfrom = 16560
-    tto = 19260
-    grouping = 10
-
-    movie_name = "G2-SKT"
-    movie_ext = "mp4"
-    sound_ext = "wav"
-    json_ext = "json"
+@click.command()
+@click.argument('stream')
+@click.option('--grouping', '-o')
+@click.option('--start', '-s')
+@click.option('--end', '-e')
+def main(stream, grouping=None, start=None, end=None):
+    stream_ext = 'mp4'
+    sound_ext = 'wav'
+    chat_ext = 'json'
     keywords = [
         'pog',
         'omg',
@@ -89,23 +88,25 @@ if __name__ == "__main__":
         'cy@'
     ]
 
-    extract_sound('../res/' + movie_name, movie_ext)
-    sound = np.array(generate_plot('../res/{}.{}'.format(movie_name, sound_ext)))
+    clip = mp.VideoFileClip('../res/{}.{}'.format(stream, stream_ext))
+    extract_sound(clip, '../res/{}'.format(stream))
+    sound = np.array(generate_plot('../res/{}.{}'.format(stream, sound_ext), clip.duration))
     sound_grad = [grad if grad > 0 else 0 for grad in np.gradient(sound)]
 
     # read file
-    with open('../res/{}.{}'.format(movie_name, json_ext), 'r') as file:
+    with open('../res/{}.{}'.format(stream, chat_ext), 'r') as file:
         data=file.read()
         
     chat = json.loads(data)
 
-    scores = comments_score(chat['comments'], keywords, grouping, tfrom, tto)
-    lscore = []
-    for i in range(tfrom, tto, grouping):
-        if i in scores:
-            lscore.append(scores[i])
-        else:
-            lscore.append(0)
+    grouping = int(grouping) if grouping else 10
+    start = int(start) if start else 0
+    
+    scores = comments_score(chat['comments'], keywords, grouping, start, end)
+
+    end = int(end) if end else scores.keys([-1])
+    
+    lscore = [scores[i] if i in scores else 0 for i in range(start, end, grouping)]
     lscore = lscore / np.max(lscore)
     lscore_grad = [grad if grad > 0 else 0 for grad in np.gradient(lscore)]
 
@@ -113,7 +114,7 @@ if __name__ == "__main__":
 
     for i in range(min(len(lscore), len(sound))):
         combination[i] = (lscore_grad[i] + sound_grad[i]) / 2
-        
+
     acc = 0
     final = np.zeros(len(combination))
     for i in range(len(combination)):
@@ -125,8 +126,8 @@ if __name__ == "__main__":
     final = [grad if grad > 0 else 0 for grad in np.gradient(final)]
         
     in_highlight = False
-    start = 0
-    end = 0
+    highlight_start = 0
+    highlight_end = 0
     clip = 0
     threshold = 0.1
     for i in range(len(final)):
@@ -134,29 +135,16 @@ if __name__ == "__main__":
         if final[i] >= threshold:
             if not in_highlight:
                 print('From: {}:{}'.format(math.floor(sec/60), sec%60))
-                start = sec
+                highlight_start = sec
             in_highlight = True
         else:
             if in_highlight:
                 print('To: {}:{}'.format(math.floor(sec/60), sec%60))
-                end = sec
+                highlight_end = sec
                 clip = clip + 1
-                create_clip('../res/{}.{}'.format(movie_name, movie_ext), start, end + grouping, "../res/output/{}-{}".format(movie_name, clip), 'mp4')
+                create_clip('../res/{}.{}'.format(stream, stream_ext), highlight_start, highlight_end + grouping, "../res/output/{}-{}".format(stream, clip), 'mp4')
             in_highlight = False
-            
-        
-    #t = np.arange(0, 45*60, 10)
 
-    #fig, ax = plt.subplots()
 
-    #ax.plot(t, final)
-
-    #ax.set(xlabel='time (s)', ylabel='score', title='bla')
-    #ax.grid()
-
-    #plt.show()
-
-    #plt.plot(sound_grad)
-    #plt.plot(lscore_grad)
-
-    #plt.show()
+if __name__ == "__main__":
+    main()
