@@ -1,8 +1,10 @@
 <?php 
     if(isset($_POST['generateButton'])){ 
+
+        $fileName = $_POST["fileName"];
+
         $command = escapeshellcmd('python ./clipper.py');
         $output = shell_exec($command);
-
 
         $dir    = '../res/output';
         $clips = array_diff(scandir($dir), array('..', '.'));
@@ -37,9 +39,11 @@
             <div class="row text-center">
                 <h1>Highlights Generator</h1>
 
-                <form action="" method="post">
+                <form action="" method="post" enctype="multipart/form-data">
+                    <br><br>
+                    File name : <input type="text" class="form-control" id="fileName" name="fileName">
+                    <br>
                     <button class="btn btn-primary" id="generateButton" name="generateButton">Generate <i class="fa fa-film"></i></button>
-                    <!--<input type="submit" id="generateButton" name="Generate" class="btn btn-primary">-->
                 </form>
 
                 <img src="img/loader.gif" id="loader">
