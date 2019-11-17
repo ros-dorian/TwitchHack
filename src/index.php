@@ -3,10 +3,10 @@
 
         $fileName = $_POST["fileName"];
 
-        $command = escapeshellcmd('python ./clipper.py');
+        $command = escapeshellcmd('python3 ./clipper.py '.$fileName);
         $output = shell_exec($command);
 
-        $dir    = '../res/output';
+        $dir    = 'res/output';
         $clips = array_diff(scandir($dir), array('..', '.'));
         foreach ($clips as $clip) {
             echo '<div class="clips" data-url="'.$clip.'"></div>';

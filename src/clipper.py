@@ -90,15 +90,15 @@ def main(stream, grouping=None, start=None, end=None, threshold=None):
         'cy@'
     ]
 
-    clip = mp.VideoFileClip('../res/{}.{}'.format(stream, stream_ext))
-    extract_sound(clip, '../res/{}'.format(stream))
-    sound = np.array(get_sound_score('../res/{}.{}'.format(stream, sound_ext), clip.duration))
+    clip = mp.VideoFileClip('res/{}.{}'.format(stream, stream_ext))
+    extract_sound(clip, 'res/{}'.format(stream))
+    sound = np.array(get_sound_score('res/{}.{}'.format(stream, sound_ext), clip.duration))
     sound_grad = [grad if grad > 0 else 0 for grad in np.gradient(sound)]
 
     print(clip.duration)
 
     # read file
-    with open('../res/{}.{}'.format(stream, chat_ext), 'r') as file:
+    with open('res/{}.{}'.format(stream, chat_ext), 'r') as file:
         data=file.read()
         
     chat = json.loads(data)
@@ -133,7 +133,7 @@ def main(stream, grouping=None, start=None, end=None, threshold=None):
     highlight_start = 0
     highlight_end = 0
     clip_index = 0
-    threshold_highlight = threshold if threshold != None else 0.1
+    threshold_highlight = float(threshold) if threshold != None else 0.1
     timestamps = []
     for i in range(len(final)):
         sec = i * 10
@@ -153,7 +153,7 @@ def main(stream, grouping=None, start=None, end=None, threshold=None):
         timestamps.append([highlight_start + 5, clip.duration])
 
     for i in range(len(timestamps)):
-        create_clip('../res/{}.{}'.format(stream, stream_ext), timestamps[i][0], timestamps[i][1], "../res/output/{}-{}".format(stream, i+1), 'mp4')
+        create_clip('res/{}.{}'.format(stream, stream_ext), timestamps[i][0], timestamps[i][1], "res/output/{}-{}".format(stream, i+1), 'mp4')
 
 if __name__ == "__main__":
     main()
