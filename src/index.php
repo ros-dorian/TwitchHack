@@ -2,14 +2,17 @@
     if(isset($_POST['generateButton'])){ 
 
         $fileName = $_POST["fileName"];
+        $fileParam = $_POST["fileParam"];
 
-        $command = escapeshellcmd('python3 ./clipper.py '.$fileName);
+        $command = escapeshellcmd('python3 ./clipper.py '.$fileName." ".$fileParam);
         $output = shell_exec($command);
 
         $dir    = 'res/output';
         $clips = array_diff(scandir($dir), array('..', '.'));
         foreach ($clips as $clip) {
-            echo '<div class="clips" data-url="'.$clip.'"></div>';
+            if(strstr($clip, $fileName)){
+                echo '<div class="clips" data-url="'.$clip.'"></div>';
+            }
         }
 
     }
@@ -42,6 +45,8 @@
                 <form action="" method="post" enctype="multipart/form-data">
                     <br><br>
                     File name : <input type="text" class="form-control" id="fileName" name="fileName">
+                    <br>
+                    File param : <input type="text" class="form-control" id="fileParam" name="fileParam">
                     <br>
                     <button class="btn btn-primary" id="generateButton" name="generateButton">Generate <i class="fa fa-film"></i></button>
                 </form>
