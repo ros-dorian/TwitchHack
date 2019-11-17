@@ -1,0 +1,23 @@
+body {
+    margin: 0px;
+    padding: 0px;
+}
+
+button#generateButton {
+    margin-top: 30px;
+    font-size: 25px;
+}
+
+img#loader {
+    margin-top: 50px;
+    width: 50px;
+    display: none;
+}
+
+div.playersBlock {
+    margin: 30px;
+}
+
+a.downloadBtn {
+    font-size: 20px;
+}
